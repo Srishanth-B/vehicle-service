@@ -1,0 +1,173 @@
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f1f5f9;
+    color: #263238;
+}
+
+header {
+    background: #12372a;
+    color: white;
+    text-align: center;
+    padding: 25px 15px;
+}
+
+header h1 {
+    margin: 0 0 8px;
+    color: #b9f36a;
+}
+
+header p {
+    margin: 0;
+}
+
+main {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 0 18px;
+}
+
+.form-section,
+.bookings-section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+}
+
+h2 {
+    color: #174c36;
+    margin-top: 0;
+}
+
+form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+label {
+    align-self: center;
+    font-weight: bold;
+}
+
+input,
+select {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #cbd5d1;
+    border-radius: 6px;
+    background: white;
+}
+
+input:focus,
+select:focus {
+    outline: 2px solid #b9f36a;
+    border-color: #467a4c;
+}
+
+button {
+    padding: 10px 14px;
+    margin: 3px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#submitBtn,
+#refreshBtn {
+    background: #236441;
+    color: white;
+}
+
+#cancelBtn {
+    background: #64748b;
+    color: white;
+}
+
+.edit-btn {
+    background: #e6b94c;
+    color: #263238;
+}
+
+.delete-btn {
+    background: #c83c3c;
+    color: white;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+#message {
+    color: #236441;
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 18px;
+}
+
+table {
+    width: 100%;
+    min-width: 850px;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 12px;
+    border: 1px solid #dbe3dd;
+    text-align: left;
+    font-size: 14px;
+}
+
+th {
+    background: #174c36;
+    color: white;
+}
+
+tbody tr:nth-child(even) {
+    background: #f4f8f4;
+}
+
+td select {
+    min-width: 115px;
+}
+
+footer {
+    background: #12372a;
+    color: white;
+    text-align: center;
+    padding: 18px;
+    margin-top: 30px;
+}
+
+@media (max-width: 600px) {
+    main {
+        padding: 0 10px;
+    }
+
+    .form-section,
+    .bookings-section {
+        padding: 16px;
+    }
+
+    form {
+        grid-template-columns: 1fr;
+    }
+
+    label {
+        margin-top: 5px;
+    }
+}

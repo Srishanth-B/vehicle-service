@@ -1,0 +1,298 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Service Booking System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <h1>AutoCare</h1>
+    <p>Vehicle Service Booking System</p>
+</header>
+
+<main>
+    <section class="form-section">
+        <h2>Book a Vehicle Service</h2>
+
+        <form id="bookingForm">
+            <label>Customer Name</label>
+            <input type="text" id="customerName" required>
+
+            <label>Phone Number</label>
+            <input type="tel" id="phone" required>
+
+            <label>Vehicle Number</label>
+            <input type="text" id="vehicleNumber" required>
+
+            <label>Vehicle Type</label>
+            <select id="vehicleType" required>
+                <option value="">Select Vehicle</option>
+                <option value="Bike">Bike</option>
+                <option value="Car">Car</option>
+                <option value="SUV">SUV</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <label>Service Type</label>
+            <select id="serviceType" required>
+                <option value="">Select Service</option>
+                <option value="General Service">General Service</option>
+                <option value="Oil Change">Oil Change</option>
+                <option value="Engine Repair">Engine Repair</option>
+                <option value="Brake Service">Brake Service</option>
+                <option value="Wheel Alignment">Wheel Alignment</option>
+            </select>
+
+            <label>Service Date</label>
+            <input type="date" id="serviceDate" required>
+
+            <button type="submit" id="submitBtn">Book Service</button>
+            <button type="button" id="cancelBtn" hidden>Cancel Edit</button>
+        </form>
+
+        <p id="message"></p>
+    </section>
+
+    <section class="bookings-section">
+        <h2>Service Bookings</h2>
+
+        <button type="button" id="refreshBtn">Refresh Bookings</button>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Vehicle No.</th>
+                        <th>Vehicle Type</th>
+                        <th>Service</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="bookingTable">
+                    <tr>
+                        <td colspan="8">Loading bookings...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <p>Vehicle Service Booking System | Mini Project</p>
+</footer>
+
+<script>
+    const form = document.getElementById("bookingForm");
+    const table = document.getElementById("bookingTable");
+    const message = document.getElementById("message");
+    const submitBtn = document.getElementById("submitBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+
+    let editingId = null;
+    let bookings = [];
+
+    // Send requests to the Node.js backend
+    async function api(url, options = {}) {
+        const response = await fetch(url, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...options.headers
+            }
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Request failed");
+        }
+
+        return data;
+    }
+
+    // Display bookings retrieved from MongoDB
+    async function loadBookings() {
+        try {
+            bookings = await api("/api/bookings");
+            table.replaceChildren();
+
+            if (bookings.length === 0) {
+                const row = table.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 8;
+                cell.textContent = "No bookings found. Book your first service!";
+                return;
+            }
+
+            bookings.forEach(booking => {
+                const row = table.insertRow();
+
+                [
+                    booking.customerName,
+                    booking.phone,
+                    booking.vehicleNumber,
+                    booking.vehicleType,
+                    booking.serviceType,
+                    booking.serviceDate
+                ].forEach(value => {
+                    row.insertCell().textContent = value;
+                });
+
+                // Status dropdown
+                const statusCell = row.insertCell();
+                const statusSelect = document.createElement("select");
+
+                ["Booked", "In Progress", "Completed", "Cancelled"]
+                    .forEach(status => {
+                        const option = document.createElement("option");
+                        option.value = status;
+                        option.textContent = status;
+                        statusSelect.appendChild(option);
+                    });
+
+                statusSelect.value = booking.status;
+                statusSelect.addEventListener("change", async () => {
+                    try {
+                        await api("/api/bookings/" + booking._id, {
+                            method: "PUT",
+                            body: JSON.stringify({
+                                status: statusSelect.value
+                            })
+                        });
+                        message.textContent = "Booking status updated!";
+                    } catch (error) {
+                        alert(error.message);
+                        loadBookings();
+                    }
+                });
+
+                statusCell.appendChild(statusSelect);
+
+                // Edit and Delete buttons
+                const actionCell = row.insertCell();
+
+                const editButton = document.createElement("button");
+                editButton.textContent = "Edit";
+                editButton.className = "edit-btn";
+                editButton.onclick = () => editBooking(booking);
+                actionCell.appendChild(editButton);
+
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Delete";
+                deleteButton.className = "delete-btn";
+                deleteButton.onclick = () => deleteBooking(booking._id);
+                actionCell.appendChild(deleteButton);
+            });
+
+        } catch (error) {
+            table.replaceChildren();
+            const row = table.insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 8;
+            cell.textContent = error.message + " Check the server and MongoDB.";
+        }
+    }
+
+    // CREATE: Add a new booking
+    form.addEventListener("submit", async event => {
+        event.preventDefault();
+
+        const booking = {
+            customerName: document.getElementById("customerName").value.trim(),
+            phone: document.getElementById("phone").value.trim(),
+            vehicleNumber: document.getElementById("vehicleNumber").value.trim(),
+            vehicleType: document.getElementById("vehicleType").value,
+            serviceType: document.getElementById("serviceType").value,
+            serviceDate: document.getElementById("serviceDate").value
+        };
+
+        try {
+            if (editingId) {
+                await api("/api/bookings/" + editingId, {
+                    method: "PUT",
+                    body: JSON.stringify(booking)
+                });
+                message.textContent = "Booking updated successfully!";
+            } else {
+                await api("/api/bookings", {
+                    method: "POST",
+                    body: JSON.stringify(booking)
+                });
+                message.textContent = "Service booking saved to MongoDB!";
+            }
+
+            resetForm();
+            await loadBookings();
+
+        } catch (error) {
+            message.textContent = error.message;
+        }
+    });
+
+    // UPDATE: Load selected booking into the form
+    function editBooking(booking) {
+        editingId = booking._id;
+
+        document.getElementById("customerName").value = booking.customerName;
+        document.getElementById("phone").value = booking.phone;
+        document.getElementById("vehicleNumber").value = booking.vehicleNumber;
+        document.getElementById("vehicleType").value = booking.vehicleType;
+        document.getElementById("serviceType").value = booking.serviceType;
+        document.getElementById("serviceDate").value = booking.serviceDate;
+
+        submitBtn.textContent = "Save Changes";
+        cancelBtn.hidden = false;
+        message.textContent = "Editing booking: " + booking.vehicleNumber;
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    // DELETE: Remove a booking from MongoDB
+    async function deleteBooking(id) {
+        if (!confirm("Are you sure you want to delete this booking?")) {
+            return;
+        }
+
+        try {
+            await api("/api/bookings/" + id, {
+                method: "DELETE"
+            });
+
+            if (editingId === id) {
+                resetForm();
+            }
+
+            message.textContent = "Booking deleted successfully!";
+            await loadBookings();
+
+        } catch (error) {
+            message.textContent = error.message;
+        }
+    }
+
+    function resetForm() {
+        form.reset();
+        editingId = null;
+        submitBtn.textContent = "Book Service";
+        cancelBtn.hidden = true;
+    }
+
+    cancelBtn.addEventListener("click", resetForm);
+    document.getElementById("refreshBtn")
+        .addEventListener("click", loadBookings);
+
+    // Load saved records when the page opens
+    loadBookings();
+</script>
+
+</body>
+</html>
